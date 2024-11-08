@@ -14,10 +14,27 @@ from biolink_model.datamodel.pydanticmodel_v2 import (BiologicalProcess,
                                                       MolecularActivity)
 
 
+# The three values allowed in the "Aspect" column of the gaf files for this ingest
+# https://geneontology.org/docs/go-annotation-file-gaf-format-2.2/#db-column-9
+aspect_map = {"F":"enables", "P":"involved_in", "C":"located_in"}
+relevant_aspects = set(list(aspect_map.keys()))
+default_no_evidence_found = "ECO:0000307" # https://www.ebi.ac.uk/QuickGO/term/ECO:0000307
+
+
+# For root node annotations that use the ND evidence code should be used:
+    #     molecular_function (GO:0003674) enables (RO:0002327)
+    #     biological_process (GO:0008150) involved_in (RO:0002331)
+    #     cellular_component (GO:0005575) is_active_in (RO:0002432)
+qualifier_map = {tuple(("GO:0003674", "ECO:0000307")):"enables", # https://geneontology.org/docs/go-annotation-file-gaf-format-2.2/#db-column-4
+                 tuple(("GO:0008150", "ECO:0000307")):"involved_in",
+                 tuple(("GO:0005575", "ECO:0000307")):"is_active_in"}
+
+
 # Genome sequenced model for
 # Aspergillus nidulans FGSC A4  a.k.a. Emericella nidulans
 # The proper CURIE prefix for this is not certain
 _gene_identifier_map: Dict[str, Tuple[str, Pattern]] = {"NCBITaxon:227321": ('AspGD', compile(r"(?P<identifier>AN\d+)\|"))}
+
 
 # Create biolink predicate map in three steps
 # Define predicate terms
@@ -48,7 +65,6 @@ go_aspect_to_biolink_class = {"F": (MolecularActivity, MacromolecularMachineToMo
                               "C": (CellularComponent, MacromolecularMachineToCellularComponentAssociation)}
 
 
-
 def get_gaf_eco_map(gaf_eco_path):
     """
     - We want to join the second column with the first if it is not set to 'Default' on a '-' character
@@ -77,9 +93,12 @@ def get_gaf_eco_map(gaf_eco_path):
 def parse_ncbi_taxa(taxon: str) -> List[str]:
     ncbi_taxa = []
     if taxon:
-        # in rare circumstances, multiple taxa may be given as a piped list...
+        # in rare circumstances, multiple taxa may be given as a piped list...(Human 9606 this occurs for example)
         ncbi_taxa = ["NCBITaxon:{}".format(taxa.split(":")[-1]) for taxa in taxon.split("|")]
 
+    # TO DO: Do we want to include the other taxon? 
+    # These include things like retro viruses. For example, https://www.ncbi.nlm.nih.gov/taxonomy/?term=11746
+    # By default, we return the first taxon listed, which corresponds to the annotation in question
     return ncbi_taxa
 
 
@@ -100,7 +119,9 @@ def parse_identifiers(row: Dict):
         # Unlikely to happen, but...
         logger.warning(f"Missing taxa for '{db}:{db_object_id}'?")
 
-    # Hacky remapping of some gene identifiers
+    # Remapping of Aspergillus 227321 gene identifiers. 
+    # The annotations are not consistent in terms of which columns we can directly pull from for this taxon
+    # Therefore, we must pull from the DB_Object_Synonym column to pull out the gene symbol in a consistent way
     if ncbitaxa[0] in _gene_identifier_map.keys():
         id_regex: Pattern = _gene_identifier_map[ncbitaxa[0]][1]
         aliases: str = row['DB_Object_Synonym']

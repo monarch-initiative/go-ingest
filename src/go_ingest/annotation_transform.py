@@ -100,10 +100,10 @@ while (row := koza_app.get_row()) is not None:
                                                  negated=negated,
                                                  has_evidence=[eco_term],
                                                  publications=publications,
-                                                 # subject_context_qualifier=ncbitaxa,  # Biolink Pydantic model support missing for this slot
                                                  aggregator_knowledge_source=["infores:monarchinitiative"],
                                                  primary_knowledge_source=assigned_by,
                                                  knowledge_level=KnowledgeLevelEnum.knowledge_assertion,
                                                  agent_type=AgentTypeEnum.manual_agent)
+                                                 ##species_context_qualifier=ncbitaxa) # TO DO: We need some sort of qualifer to denote taxa specific
     # Write the captured Association out
     koza_app.write(association)
