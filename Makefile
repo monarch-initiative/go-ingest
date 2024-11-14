@@ -73,7 +73,7 @@ download:
 
 .PHONY: run
 run: download
-	$(RUN) ingest transform
+	$(RUN) koza transform --source src/go_ingest/annotation_transform.yaml
 	$(RUN) python scripts/generate-report.py
 
 
