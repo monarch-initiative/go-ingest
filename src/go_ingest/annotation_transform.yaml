@@ -78,8 +78,7 @@ edge_properties:
   - 'negated'
   - 'has_evidence'
   - 'object'
-  ## TO DO: 
-  ##- 'species_context_qualifier' # Once biolink model is updated
+  - 'species_context_qualifier'
   - 'publications'
   - 'aggregator_knowledge_source'
   - 'primary_knowledge_source'

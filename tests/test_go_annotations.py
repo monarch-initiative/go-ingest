@@ -513,9 +513,11 @@ def test_association(basic_go):
     assert association.primary_knowledge_source == "infores:uniprot"
     assert "infores:monarchinitiative" in association.aggregator_knowledge_source
 
-    # TO DO: Incorporate ncbi taxa tests for species_context_qualifier
-    ##multi_taxa_association = basic_go[1]
-    ##assert multi_taxa_association.species_context_qualifier == result_expected[multi_taxa_association.subject][1]
+    # Taxon testing (multiple and single taxon values)
+    single_taxa_association = basic_go[0]
+    multi_taxa_association = basic_go[1]
+    assert single_taxa_association.species_context_qualifier == result_expected[single_taxa_association.subject][1]
+    assert multi_taxa_association.species_context_qualifier == result_expected[multi_taxa_association.subject][1]
 
 
 def test_mgi_curie(mgi_entities):

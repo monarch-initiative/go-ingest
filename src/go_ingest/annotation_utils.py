@@ -133,5 +133,5 @@ def parse_identifiers(row: Dict):
 
     gene_id: str = f"{db}:{db_object_id}"
 
-    return gene_id, ncbitaxa
+    return gene_id, ncbitaxa[0]
 

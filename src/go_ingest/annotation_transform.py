@@ -103,7 +103,7 @@ while (row := koza_app.get_row()) is not None:
                                                  aggregator_knowledge_source=["infores:monarchinitiative"],
                                                  primary_knowledge_source=assigned_by,
                                                  knowledge_level=KnowledgeLevelEnum.knowledge_assertion,
-                                                 agent_type=AgentTypeEnum.manual_agent)
-                                                 ##species_context_qualifier=ncbitaxa) # TO DO: We need some sort of qualifer to denote taxa specific
+                                                 agent_type=AgentTypeEnum.manual_agent,
+                                                 species_context_qualifier=ncbitaxa)
     # Write the captured Association out
     koza_app.write(association)
