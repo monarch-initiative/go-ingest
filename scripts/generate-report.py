@@ -2,8 +2,11 @@ from pathlib import Path
 
 import duckdb
 
-nodes_file = "output/geneontology.org_macroMolecularMachine_associations_nodes.tsv"
-edges_file = "output/geneontology.org_macroMolecularMachine_associations_edges.tsv"
+nodes_file = "output/go_annotation_nodes.tsv"
+nodes_report = "output/go_annotation_nodes_report.tsv"
+
+edges_file = "output/go_annotation_edges.tsv"
+edges_report = "output/go_annotation_edges_report.tsv"
 
 
 # Nodes
@@ -14,7 +17,9 @@ if Path(nodes_file).exists():
     GROUP BY all
     ORDER BY all
     """
-    duckdb.sql(f"copy ({query}) to 'output/geneontology.org_macroMolecularMachine_associations_nodes_report.tsv' (header, delimiter '\t')")
+
+    ncommand = "copy ({}) to '{}' (header, delimiter '\t')".format(query, nodes_report)
+    duckdb.sql(ncommand)
 
 # Edges
 if Path(edges_file).exists():
@@ -25,4 +30,5 @@ if Path(edges_file).exists():
     GROUP BY all
     ORDER BY all
     """
-    duckdb.sql(f"copy ({query}) to 'output/geneontology.org_macroMolecularMachine_associations_edges_report.tsv' (header, delimiter '\t')")
+    ecommand = "copy ({}) to '{}' (header, delimiter '\t')".format(query, edges_report)
+    duckdb.sql(ecommand)
