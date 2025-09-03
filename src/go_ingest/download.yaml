@@ -63,11 +63,6 @@
   local_name: data/44689.go_annotations.gaf.gz
   tag: go_annotation
 
-# Various species in the Aspergillus genus
-- url: http://current.geneontology.org/annotations/aspgd.gaf.gz
-  local_name: data/5052.go_annotations.gaf.gz
-  tag: go_annotation
-
 # Saccharomyces cerevisiae (baker's yeast)
 - url: http://current.geneontology.org/annotations/sgd.gaf.gz
   local_name: data/4932.go_annotations.gaf.gz
