@@ -8,9 +8,6 @@ comment_char: '!'
 files:
   # Taxon_ids 4932 and 5052 gene annotation files do not reference the taxon id they are named after.
   # Instead, 4932 (cerevisiae) references ceriviseas strain S288C (559292) which is the reference genome assembly strain
-  # And, 5052 (Aspergillus) has multiple strains annotated within the gaf file. We are only interested in 227321.
-  # 227321 pertains to Aspergillus nidulans FGSC A4 
-  # Aspergillus nidulans FGSC A4 (cononical genome reference assembly strain for nidulans species)
   - './data/9606.go_annotations.gaf.gz'   ### Homo sapiens
   - './data/10090.go_annotations.gaf.gz'  ### Mus musculus
   - './data/10116.go_annotations.gaf.gz'  ### Rattus norvegicus
@@ -22,7 +19,6 @@ files:
   - './data/7227.go_annotations.gaf.gz'   ### Drosophila melanogaster
   - './data/4932.go_annotations.gaf.gz'   ### Saccharomyces cerevisiae (4932-->559292 downstream when filtering for taxon ids)
   - './data/4896.go_annotations.gaf.gz'   ### Schizosaccharomyces pombe
-  - './data/5052.go_annotations.gaf.gz'   ### Aspergillus (5052-->227321 downstream when filtering for taxon ids)
   - './data/6239.go_annotations.gaf.gz'   ### Caenorhabditis elegans
   - './data/44689.go_annotations.gaf.gz'  ### Dictyostelium discoideum
 
@@ -42,7 +38,6 @@ filters:
       - 'taxon:7227'
       - 'taxon:559292'  ### Saccharomyces cerevisiae S288C Reference genome assembly strain (Majority of annotations from this taxon id > 100,000)
       - 'taxon:4896'
-      - 'taxon:227321'  ### Aspergillus nidulans FGSC A4 (data inside 5052.go_annotations.gaf.gz, Reference genome assembly strain)
       - 'taxon:6239'
       - 'taxon:44689'
 
