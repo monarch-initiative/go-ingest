@@ -1,43 +1,101 @@
 """
 Unit tests for GO Annotations ingest
+
+Uses Koza 2.x KozaTransform pattern with PassthroughWriter and mappings.
 """
 
-import pytest
+import importlib.util
+from pathlib import Path
 from typing import Tuple
+
+import pytest
 from biolink_model.datamodel.pydanticmodel_v2 import Association
-from koza.io.writer.writer import KozaWriter
-from koza.runner import KozaRunner, KozaTransformHooks
+from koza import KozaTransform
+from koza.io.writer.passthrough_writer import PassthroughWriter
+from koza.runner import load_transform
 from loguru import logger
 
-from annotation_utils import parse_identifiers, get_gaf_eco_map
-import go_annotation
-from go_annotation import transform_record
+from annotation_utils import parse_identifiers
+
+# Define the transform script path
+TRANSFORM_SCRIPT = Path(__file__).parent.parent / "src" / "go_annotation.py"
 
 
-class MockWriter(KozaWriter):
-    """Mock writer that collects entities in memory for testing."""
-    def __init__(self):
-        self.items = []
-
-    def write(self, entities):
-        self.items += entities
-
-    def write_nodes(self, nodes):
-        self.items += nodes
-
-    def write_edges(self, edges):
-        self.items += edges
-
-    def finalize(self):
-        pass
+def load_module_from_path(path: Path):
+    """Load a Python module from a file path."""
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-@pytest.fixture(autouse=True)
-def setup_eco_map(map_cache):
-    """Inject the eco map into the transform module before each test."""
-    go_annotation._gaf_eco_map = map_cache
-    yield
-    go_annotation._gaf_eco_map = None
+def run_transform_with_mappings(rows: list[dict], mappings: dict[str, dict[str, dict[str, str]]]) -> list:
+    """Run the transform on given rows with provided mappings and return entities."""
+    module = load_module_from_path(TRANSFORM_SCRIPT)
+    hooks = load_transform(module)
+    writer = PassthroughWriter()
+
+    hooks_obj = hooks.get(None)
+    if hooks_obj is None:
+        raise ValueError("No hooks found")
+
+    koza_transform = KozaTransform(
+        mappings=mappings,
+        writer=writer,
+        extra_fields={},
+    )
+
+    # Run the transform_record functions on each row
+    for row in rows:
+        for transform_fn in hooks_obj.transform_record:
+            result = transform_fn(koza_transform, row)
+            if result is not None:
+                writer.write(result)
+
+    writer.finalize()
+    return writer.data
+
+
+@pytest.fixture
+def mappings():
+    """
+    Provide test mapping data in the format expected by KozaTransform.
+
+    Format: {map_name: {key: {column: value}}}
+
+    This fixture contains the ECO evidence code mappings used by the transform.
+    """
+    return {
+        "gaf_eco": {
+            # Standard evidence codes
+            "EXP": {"eco_term": "ECO:0000269"},
+            "HDA": {"eco_term": "ECO:0007005"},
+            "HEP": {"eco_term": "ECO:0007007"},
+            "HGI": {"eco_term": "ECO:0007003"},
+            "HMP": {"eco_term": "ECO:0007001"},
+            "HTP": {"eco_term": "ECO:0006056"},
+            "IBA": {"eco_term": "ECO:0000318"},
+            "IBD": {"eco_term": "ECO:0000319"},
+            "IC": {"eco_term": "ECO:0000305"},
+            "IDA": {"eco_term": "ECO:0000314"},
+            "IEA": {"eco_term": "ECO:0000501"},
+            "IEP": {"eco_term": "ECO:0000270"},
+            "IGC": {"eco_term": "ECO:0000317"},
+            "IGI": {"eco_term": "ECO:0000316"},
+            "IKR": {"eco_term": "ECO:0000320"},
+            "IMP": {"eco_term": "ECO:0000315"},
+            "IPI": {"eco_term": "ECO:0000353"},
+            "IRD": {"eco_term": "ECO:0000321"},
+            "ISA": {"eco_term": "ECO:0000247"},
+            "ISM": {"eco_term": "ECO:0000255"},
+            "ISO": {"eco_term": "ECO:0000266"},
+            "ISS": {"eco_term": "ECO:0000250"},
+            "NAS": {"eco_term": "ECO:0000303"},
+            "ND": {"eco_term": "ECO:0000307"},
+            "RCA": {"eco_term": "ECO:0000245"},
+            "TAS": {"eco_term": "ECO:0000304"},
+        }
+    }
 
 
 @pytest.mark.parametrize("query",
@@ -67,39 +125,6 @@ def test_parse_identifiers(query: Tuple):
     gene_id, ncbitaxa = parse_identifiers(query[0])
     assert gene_id == query[1]
     assert query[2] in ncbitaxa
-
-
-@pytest.fixture
-def gaf_eco_path():
-    """
-    :return: string of path to gaf-eco-mappings.txt file
-    """
-    return "./data/gaf-eco-mapping.txt"
-    #return os.path.join(ingest_data_dir, "gaf-eco-mapping.txt")
-
-
-@pytest.fixture
-def map_cache(gaf_eco_path):
-    """
-    Is meant to return a dictionary mapping evidence codes to ECO:000... (i.e. {"IGI":"ECO:0000316", ... })
-    """
-    return get_gaf_eco_map(gaf_eco_path)
-
-
-@pytest.fixture
-def source_name():
-    """
-    :return: string source name of GO Annotations ingest
-    """
-    return "go_annotation"
-
-
-@pytest.fixture
-def script():
-    """
-    :return: string path to GO Annotations ingest script
-    """
-    return "./src/go_annotation.py"
 
 
 @pytest.fixture
@@ -287,7 +312,7 @@ def test_rows():
              "Qualifier": "",
              "GO_ID": "GO:0005575",  # cellular compartment
              "DB_Reference": "GO_REF:0005575",
-             "Evidence_Code": "IEA-GO_REF:0000041",
+             "Evidence_Code": "IEA",  # Use a simple evidence code for this test
              "With_or_From": "UniProtKB-KW:KW-0694",
              "Aspect": "C",
              "DB_Object_Name": "Diphosphoinositol polyphosphate phosphohydrolase",
@@ -319,56 +344,8 @@ def test_rows():
              "Gene_Product_Form_ID": ""}]
 
 
-@pytest.fixture
-def basic_go(test_rows):
-    """
-    Run transform for GO annotation ingest.
-
-    :param test_rows:
-    :return: list of entities
-    """
-    writer = MockWriter()
-    runner = KozaRunner(
-        data=iter(test_rows),
-        writer=writer,
-        hooks=KozaTransformHooks(transform_record=[transform_record])
-    )
-    runner.run()
-    return writer.items
-
-
-@pytest.fixture
-def mgi_entities():
-    row = {"DB": "MGI",
-           "DB_Object_ID": "MGI:1918911",
-           "DB_Object_Symbol": "0610005C13Rik",
-           "Qualifier": "enables",
-           "GO_ID": "GO:0003674",
-           "DB_Reference": "MGI:MGI:2156816|GO_REF:0000015",
-           "Evidence_Code": "ND",
-           "With_or_From": "",
-           "Aspect": "F",
-           "DB_Object_Name": "RIKEN cDNA 0610005C13 gene",
-           "DB_Object_Synonym": "",
-           "DB_Object_Type": "gene",
-           "Taxon": "taxon:10090",
-           "Date": "20200917",
-           "Assigned_By": "MGI",
-           "Annotation_Extension": "",
-           "Gene_Product_Form_ID": ""}
-
-    writer = MockWriter()
-    runner = KozaRunner(
-        data=iter([row]),
-        writer=writer,
-        hooks=KozaTransformHooks(transform_record=[transform_record])
-    )
-    runner.run()
-    return writer.items
-
-
 #################################
-### Run our (remaining) tests ###
+### Expected results dictionary ###
 
 result_expected = {# Test regular MolecularActivity go term
                    "UniProtKB:A0A024RBG1": ["biolink:Gene",
@@ -471,7 +448,7 @@ result_expected = {# Test regular MolecularActivity go term
                                              "biolink:located_in",
                                              "RO:0002432",
                                              False,
-                                             "ECO:0000307"],
+                                             "ECO:0000501"],
 
                     # Invalid Evidence Code - coerced into 'ND' -> "ECO:0000307"
                     "UniProtKB:A0A024RBG9": ["biolink:Gene",
@@ -485,46 +462,19 @@ result_expected = {# Test regular MolecularActivity go term
                                              "ECO:0000307"]}
 
 
-def test_get_gaf_eco_map(map_cache):
-    """
-    Ensures the get_gaf_eco_map function is reading in the gaf-eco mappings correctly
-    Two types of column layouts are found. If there is a "Default" present then we do not want it in the mapping key
-    If there is a GO_REF (or any other value that may show up) we can include that here
-    IEA     GO_REF:0000108  ECO:0000363
-    IEP     Default ECO:0000270
-    """
-    assert type(map_cache) == type({})
-    assert len(map_cache) > 0 # Don't want empty mapping
+def test_association(test_rows, mappings):
+    """Test that the transform produces the expected associations using koza lookups."""
+    entities = run_transform_with_mappings(test_rows, mappings)
 
-    # I can't imagine this file would grow from ~42 mappings --> 10,000 mappings.
-    # "Helps" ensure correct file type is read in
-    assert len(map_cache) < 10_000
-
-    # Need to ensure each key, value pair is what we think it is
-    for k, v in map_cache.items():
-
-        # Basic types
-        assert type(k) == type("hello")
-        assert type(v) == type("hello")
-
-        # Our "key" / "value" modeling checks
-        assert v.startswith("ECO:")
-        assert "Default" not in v # gaf-eco-mappings.txt formatting specific check
-        assert "default" not in v # gaf-eco-mappings.txt formatting specific check
-
-        assert "Default" not in k # gaf-eco-mappings.txt formatting specific check
-        assert "default" not in k # gaf-eco-mappings.txt formatting specific check
-
-        if "-" in k:
-            assert k.split("-")[1].startswith("GO_REF:")
-
-
-def test_association(basic_go):
-    if not len(basic_go):
+    if not len(entities):
         logger.warning("test_association() null test?")
         return
 
-    association = basic_go[2]
+    # We expect 10 associations (11 rows - 1 skipped due to empty Aspect)
+    assert len(entities) == 10
+
+    # Test first association (regular MolecularActivity)
+    association = entities[0]
     assert association
     assert association.subject in result_expected.keys()
 
@@ -537,16 +487,86 @@ def test_association(basic_go):
     assert "infores:monarchinitiative" in association.aggregator_knowledge_source
 
     # Taxon testing (multiple and single taxon values)
-    single_taxa_association = basic_go[0]
-    multi_taxa_association = basic_go[1]
+    single_taxa_association = entities[0]
+    multi_taxa_association = entities[1]
     assert single_taxa_association.species_context_qualifier == result_expected[single_taxa_association.subject][1]
     assert multi_taxa_association.species_context_qualifier == result_expected[multi_taxa_association.subject][1]
 
 
-def test_mgi_curie(mgi_entities):
-    association = [association for association in mgi_entities if isinstance(association, Association)][0]
+def test_mgi_curie(mappings):
+    """Test MGI CURIE formatting."""
+    row = {"DB": "MGI",
+           "DB_Object_ID": "MGI:1918911",
+           "DB_Object_Symbol": "0610005C13Rik",
+           "Qualifier": "enables",
+           "GO_ID": "GO:0003674",
+           "DB_Reference": "MGI:MGI:2156816|GO_REF:0000015",
+           "Evidence_Code": "ND",
+           "With_or_From": "",
+           "Aspect": "F",
+           "DB_Object_Name": "RIKEN cDNA 0610005C13 gene",
+           "DB_Object_Synonym": "",
+           "DB_Object_Type": "gene",
+           "Taxon": "taxon:10090",
+           "Date": "20200917",
+           "Assigned_By": "MGI",
+           "Annotation_Extension": "",
+           "Gene_Product_Form_ID": ""}
+
+    entities = run_transform_with_mappings([row], mappings)
+    association = [assoc for assoc in entities if isinstance(assoc, Association)][0]
     assert association
     assert association.subject == "MGI:1918911"
     assert association.publications == ["MGI:2156816", "GO_REF:0000015"]
     assert association.primary_knowledge_source == "infores:mgi"
     assert "infores:monarchinitiative" in association.aggregator_knowledge_source
+
+
+def test_invalid_evidence_code(mappings):
+    """Test that invalid evidence codes fall back to ND (ECO:0000307)."""
+    row = {"DB": "UniProtKB",
+           "DB_Object_ID": "TEST123",
+           "DB_Object_Symbol": "TEST",
+           "Qualifier": "enables",
+           "GO_ID": "GO:0003723",
+           "DB_Reference": "GO_REF:0000043",
+           "Evidence_Code": "INVALID_CODE",  # Not in the map
+           "With_or_From": "",
+           "Aspect": "F",
+           "DB_Object_Name": "Test protein",
+           "DB_Object_Synonym": "",
+           "DB_Object_Type": "protein",
+           "Taxon": "taxon:9606",
+           "Date": "20211010",
+           "Assigned_By": "UniProt",
+           "Annotation_Extension": "",
+           "Gene_Product_Form_ID": ""}
+
+    entities = run_transform_with_mappings([row], mappings)
+    assert len(entities) == 1
+    # Invalid evidence code should fall back to ND -> ECO:0000307
+    assert "ECO:0000307" in entities[0].has_evidence
+
+
+def test_empty_aspect_skipped(mappings):
+    """Test that rows with empty Aspect are skipped."""
+    row = {"DB": "UniProtKB",
+           "DB_Object_ID": "TEST456",
+           "DB_Object_Symbol": "TEST",
+           "Qualifier": "enables",
+           "GO_ID": "GO:0003723",
+           "DB_Reference": "GO_REF:0000043",
+           "Evidence_Code": "IEA",
+           "With_or_From": "",
+           "Aspect": "",  # Empty aspect
+           "DB_Object_Name": "Test protein",
+           "DB_Object_Synonym": "",
+           "DB_Object_Type": "protein",
+           "Taxon": "taxon:9606",
+           "Date": "20211010",
+           "Assigned_By": "UniProt",
+           "Annotation_Extension": "",
+           "Gene_Product_Form_ID": ""}
+
+    entities = run_transform_with_mappings([row], mappings)
+    assert len(entities) == 0

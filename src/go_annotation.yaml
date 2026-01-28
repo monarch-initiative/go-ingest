@@ -1,11 +1,6 @@
 name: 'go_annotation'
 
 reader:
-  name: 'go_annotation_reader'
-  format: 'csv'
-  delimiter: '\t'
-  header_mode: 'none'
-  comment_char: '!'
   files:
     # Taxon_ids 4932 and 5052 gene annotation files do not reference the taxon id they are named after.
     # Instead, 4932 (cerevisiae) references ceriviseas strain S288C (559292) which is the reference genome assembly strain
@@ -22,6 +17,10 @@ reader:
     - '../data/4896.go_annotations.gaf.gz'   ### Schizosaccharomyces pombe
     - '../data/6239.go_annotations.gaf.gz'   ### Caenorhabditis elegans
     - '../data/44689.go_annotations.gaf.gz'  ### Dictyostelium discoideum
+  format: 'csv'
+  delimiter: '\t'
+  header_mode: none
+  comment_char: '!'
   filters:
     - inclusion: 'include'
       column: 'Taxon'
@@ -61,12 +60,11 @@ reader:
     - Gene_Product_Form_ID
 
 transform:
-  name: 'go_annotation_transform'
   mode: 'flat'
+  mappings:
+    - "./gaf_eco_map.yaml"
 
 writer:
-  name: 'go_annotation_writer'
-  node_properties: []
   edge_properties:
     - 'id'
     - 'category'

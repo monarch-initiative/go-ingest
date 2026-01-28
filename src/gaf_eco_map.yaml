@@ -1,0 +1,16 @@
+name: "gaf_eco"
+
+reader:
+  files:
+    - "../data/gaf-eco-map.tsv"
+  format: "csv"
+  delimiter: "\t"
+  header_mode: 0
+  columns:
+    - "evidence_code"
+    - "eco_term"
+
+transform:
+  key: "evidence_code"
+  values:
+    - "eco_term"

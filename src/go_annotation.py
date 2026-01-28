@@ -5,6 +5,14 @@ Gene to GO term Associations
 (to MolecularActivity, BiologicalProcess and CellularComponent)
 """
 
+import sys
+from pathlib import Path
+
+# Add the src directory to sys.path for relative imports
+_src_dir = Path(__file__).parent
+if str(_src_dir) not in sys.path:
+    sys.path.insert(0, str(_src_dir))
+
 import uuid
 import koza
 from biolink_model.datamodel.pydanticmodel_v2 import KnowledgeLevelEnum, AgentTypeEnum
@@ -16,27 +24,12 @@ from annotation_utils import (parse_identifiers,
                               aspect_map,
                               relevant_aspects,
                               default_no_evidence_found,
-                              qualifier_map,
-                              get_gaf_eco_map)
-
-
-# Lazy-load GO evidence code map from eco downloaded file
-# This avoids FileNotFoundError during test imports
-_gaf_eco_map = None
-
-def get_eco_map():
-    """Get the GAF-ECO mapping, loading it lazily on first access."""
-    global _gaf_eco_map
-    if _gaf_eco_map is None:
-        _gaf_eco_map = get_gaf_eco_map("./data/gaf-eco-mapping.txt")
-    return _gaf_eco_map
+                              qualifier_map)
 
 
 @koza.transform_record()
 def transform_record(koza_transform, row):
     """Transform a GO annotation row into an association."""
-    gaf_eco_map = get_eco_map()
-
     # Grab relevant gene info and
     # Discern GO identifier 'Aspect' this term belongs to:
     #      'F' == molecular_function - child of GO:0003674
@@ -58,13 +51,15 @@ def transform_record(koza_transform, row):
         logger.warning("GAF Aspec {} is empty or unrecongnized? Skipping reocrd...".format(go_aspect))
         return []
 
-    # Grab eco evidence code
-    if (evidence_code) and (evidence_code in gaf_eco_map):
-        eco_term = gaf_eco_map[evidence_code]
-
-    # Deal with no eco term
-    if not eco_term:
-        logger.warning("GAF Evidence Code {} is empty or unrecognized? Tagging as 'ND'".format(evidence_code))
+    # Lookup eco evidence code using koza map
+    # koza_transform.lookup() returns the key if not found
+    if evidence_code:
+        eco_term = koza_transform.lookup(evidence_code, "eco_term", map_name="gaf_eco")
+        if eco_term == evidence_code:  # lookup returns key if not found
+            logger.warning("GAF Evidence Code {} is empty or unrecognized? Tagging as 'ND'".format(evidence_code))
+            eco_term = default_no_evidence_found
+    else:
+        logger.warning("GAF Evidence Code is empty? Tagging as 'ND'")
         eco_term = default_no_evidence_found
 
     # The Association Predicate is otherwise inferred from the GAF 'Qualifier' used.
