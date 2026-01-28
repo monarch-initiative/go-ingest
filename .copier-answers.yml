@@ -1,0 +1,11 @@
+_commit: fe21eee73f47a659640e02590a3d72ca82f2ca35
+_src_path: cookiecutter-monarch-ingest
+copyright_year: '2026'
+email: info@monarchinitiative.org
+full_name: Monarch Initiative
+github_handle: monarch-initiative
+github_org: monarch-initiative
+license: MIT
+project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.
+project_name: go-ingest
+project_slug: go_ingest

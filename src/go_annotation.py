@@ -6,8 +6,8 @@ Gene to GO term Associations
 """
 
 import uuid
+import koza
 from biolink_model.datamodel.pydanticmodel_v2 import KnowledgeLevelEnum, AgentTypeEnum
-from koza.cli_utils import get_koza_app
 
 from loguru import logger
 from annotation_utils import (parse_identifiers,
@@ -20,14 +20,24 @@ from annotation_utils import (parse_identifiers,
                               get_gaf_eco_map)
 
 
-# Initiate koza app and grab GO evidence code map from eco downloaded file
-koza_app = get_koza_app("go_annotation")
-gaf_eco_map = get_gaf_eco_map("./data/gaf-eco-mapping.txt")
+# Lazy-load GO evidence code map from eco downloaded file
+# This avoids FileNotFoundError during test imports
+_gaf_eco_map = None
 
-# for row in koza_app.source: # doesn't play nice with tests
-while (row := koza_app.get_row()) is not None:
+def get_eco_map():
+    """Get the GAF-ECO mapping, loading it lazily on first access."""
+    global _gaf_eco_map
+    if _gaf_eco_map is None:
+        _gaf_eco_map = get_gaf_eco_map("./data/gaf-eco-mapping.txt")
+    return _gaf_eco_map
 
-    # Grab relevant gene info and 
+
+@koza.transform_record()
+def transform_record(koza_transform, row):
+    """Transform a GO annotation row into an association."""
+    gaf_eco_map = get_eco_map()
+
+    # Grab relevant gene info and
     # Discern GO identifier 'Aspect' this term belongs to:
     #      'F' == molecular_function - child of GO:0003674
     #      'P' == biological_process - child of GO:0008150
@@ -46,7 +56,7 @@ while (row := koza_app.get_row()) is not None:
     # Deal with case where we can't make proper association
     if (not go_aspect) or (go_aspect not in relevant_aspects):
         logger.warning("GAF Aspec {} is empty or unrecongnized? Skipping reocrd...".format(go_aspect))
-        continue
+        return []
 
     # Grab eco evidence code
     if (evidence_code) and (evidence_code in gaf_eco_map):
@@ -56,7 +66,7 @@ while (row := koza_app.get_row()) is not None:
     if not eco_term:
         logger.warning("GAF Evidence Code {} is empty or unrecognized? Tagging as 'ND'".format(evidence_code))
         eco_term = default_no_evidence_found
-    
+
     # The Association Predicate is otherwise inferred from the GAF 'Qualifier' used.
     # Note that this qualifier may be negated (i.e. "NOT|<qualifier>").
     key = tuple((go_id, eco_term))
@@ -80,7 +90,7 @@ while (row := koza_app.get_row()) is not None:
     # Can't make association with no predicate
     if not predicate:
         logger.error("GAF Qualifier {} is unrecognized? Skipping the record...".format(qualifier))
-        continue
+        return []
 
     # Primary knowledge source from GOA is in the "Assigned_By" column. Needs formatting
     assigned_by = "infores:{}".format(row["Assigned_By"].strip().lower().replace("_", "-"))
@@ -105,5 +115,5 @@ while (row := koza_app.get_row()) is not None:
                                                  knowledge_level=KnowledgeLevelEnum.knowledge_assertion,
                                                  agent_type=AgentTypeEnum.manual_agent,
                                                  species_context_qualifier=ncbitaxa)
-    # Write the captured Association out
-    koza_app.write(association)
+    # Return the captured Association
+    return [association]

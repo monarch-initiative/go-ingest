@@ -3,24 +3,44 @@ Unit tests for GO Annotations ingest
 """
 
 import pytest
-import os
-import sys
 from typing import Tuple
 from biolink_model.datamodel.pydanticmodel_v2 import Association
-from koza.utils.testing_utils import mock_koza  # noqa: F401  # noqa: F401
+from koza.io.writer.writer import KozaWriter
+from koza.runner import KozaRunner, KozaTransformHooks
 from loguru import logger
 
-# Grab parent directory as string, and then add where our ingest code is located, and lastly add to sytem path
-parent_dir = '/'.join(os.path.dirname(__file__).split('/')[:-1])
-ingest_code_dir = os.path.join(parent_dir, "src/go_ingest")
-sys.path.append(ingest_code_dir)
-
-
-# Now that our "system" path recognizes our src/ directory we can import our utils and constants
 from annotation_utils import parse_identifiers, get_gaf_eco_map
+import go_annotation
+from go_annotation import transform_record
 
 
-@pytest.mark.parametrize("query", 
+class MockWriter(KozaWriter):
+    """Mock writer that collects entities in memory for testing."""
+    def __init__(self):
+        self.items = []
+
+    def write(self, entities):
+        self.items += entities
+
+    def write_nodes(self, nodes):
+        self.items += nodes
+
+    def write_edges(self, edges):
+        self.items += edges
+
+    def finalize(self):
+        pass
+
+
+@pytest.fixture(autouse=True)
+def setup_eco_map(map_cache):
+    """Inject the eco map into the transform module before each test."""
+    go_annotation._gaf_eco_map = map_cache
+    yield
+    go_annotation._gaf_eco_map = None
+
+
+@pytest.mark.parametrize("query",
                         [({"DB": "AspGD",
                            "DB_Object_ID": "ASPL0000057967",
                            "DB_Object_Symbol": "catB",
@@ -37,7 +57,7 @@ from annotation_utils import parse_identifiers, get_gaf_eco_map
                            "Date": "20090403",
                            "Assigned_By": "AspGD",
                            "Annotation_Extension": "",
-                           "Gene_Product_Form_ID": ""}, 
+                           "Gene_Product_Form_ID": ""},
 
                            "AspGD:AN9339",
 
@@ -79,7 +99,7 @@ def script():
     """
     :return: string path to GO Annotations ingest script
     """
-    return "./src/go_ingest/annotation_transform.py"
+    return "./src/go_annotation.py"
 
 
 @pytest.fixture
@@ -162,7 +182,7 @@ def test_rows():
              "Assigned_By": "UniProt",
              "Annotation_Extension": "",
              "Gene_Product_Form_ID": ""},
-        
+
             # Test default qualifier override for cellular compartment
             {"DB": "UniProtKB",
              "DB_Object_ID": "A0A024RBG4",
@@ -220,7 +240,7 @@ def test_rows():
              "Assigned_By": "UniProt",
              "Annotation_Extension": "",
              "Gene_Product_Form_ID": ""},
-        
+
             # Test non-default Biological Process with negated qualifier
             {"DB": "UniProtKB",
              "DB_Object_ID": "Q6GZX0",
@@ -239,7 +259,7 @@ def test_rows():
              "Assigned_By": "UniProt",
              "Annotation_Extension": "",
              "Gene_Product_Form_ID": ""},
-        
+
             # Missing (or wrong) GO term Aspect value - the record will be skipped?
             # So no entry is needed in the result_expected dictionary below
             {"DB": "UniProtKB",
@@ -259,7 +279,7 @@ def test_rows():
              "Assigned_By": "UniProt",
              "Annotation_Extension": "",
              "Gene_Product_Form_ID": ""},
-        
+
             # Missing (empty) qualifier - assign GO Aspect associated default
             {"DB": "UniProtKB",
              "DB_Object_ID": "A0A024RBG8",
@@ -300,26 +320,25 @@ def test_rows():
 
 
 @pytest.fixture
-def basic_go(mock_koza, source_name, test_rows, script, map_cache):
+def basic_go(test_rows):
     """
-    Mock Koza run for GO annotation ingest.
+    Run transform for GO annotation ingest.
 
-    :param mock_koza:
-    :param source_name:
     :param test_rows:
-    :param script:
-    :param local_table:
-
-    :return: mock_koza application
+    :return: list of entities
     """
-    return mock_koza(name=source_name,
-                     data=test_rows,
-                     transform_code=script,
-                     map_cache=map_cache)
+    writer = MockWriter()
+    runner = KozaRunner(
+        data=iter(test_rows),
+        writer=writer,
+        hooks=KozaTransformHooks(transform_record=[transform_record])
+    )
+    runner.run()
+    return writer.items
 
 
 @pytest.fixture
-def mgi_entities(mock_koza, source_name, script, map_cache):
+def mgi_entities():
     row = {"DB": "MGI",
            "DB_Object_ID": "MGI:1918911",
            "DB_Object_Symbol": "0610005C13Rik",
@@ -338,10 +357,14 @@ def mgi_entities(mock_koza, source_name, script, map_cache):
            "Annotation_Extension": "",
            "Gene_Product_Form_ID": ""}
 
-    return mock_koza(name=source_name,
-                     data=row,
-                     transform_code=script,
-                     map_cache=map_cache)
+    writer = MockWriter()
+    runner = KozaRunner(
+        data=iter([row]),
+        writer=writer,
+        hooks=KozaTransformHooks(transform_record=[transform_record])
+    )
+    runner.run()
+    return writer.items
 
 
 #################################
@@ -360,7 +383,7 @@ result_expected = {# Test regular MolecularActivity go term
 
                     # Multiple Taxa
                     "WB:WBGene00000013": ["biolink:Gene",
-                                          
+
                                           ### Two are originally present in the input (6239, 46170)
                                           ### We want to take the FIRST one the is reported from left to right (taxon:6239|taxon:46170)
                                           "NCBITaxon:6239",
@@ -476,10 +499,10 @@ def test_get_gaf_eco_map(map_cache):
     # I can't imagine this file would grow from ~42 mappings --> 10,000 mappings.
     # "Helps" ensure correct file type is read in
     assert len(map_cache) < 10_000
-    
+
     # Need to ensure each key, value pair is what we think it is
     for k, v in map_cache.items():
-        
+
         # Basic types
         assert type(k) == type("hello")
         assert type(v) == type("hello")

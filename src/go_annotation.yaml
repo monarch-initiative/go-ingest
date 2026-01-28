@@ -1,0 +1,83 @@
+name: 'go_annotation'
+
+reader:
+  name: 'go_annotation_reader'
+  format: 'csv'
+  delimiter: '\t'
+  header_mode: 'none'
+  comment_char: '!'
+  files:
+    # Taxon_ids 4932 and 5052 gene annotation files do not reference the taxon id they are named after.
+    # Instead, 4932 (cerevisiae) references ceriviseas strain S288C (559292) which is the reference genome assembly strain
+    - '../data/9606.go_annotations.gaf.gz'   ### Homo sapiens
+    - '../data/10090.go_annotations.gaf.gz'  ### Mus musculus
+    - '../data/10116.go_annotations.gaf.gz'  ### Rattus norvegicus
+    - '../data/9615.go_annotations.gaf.gz'   ### Canis lupus familiaris
+    - '../data/9823.go_annotations.gaf.gz'   ### Sus scrofa
+    - '../data/9913.go_annotations.gaf.gz'   ### Bos taurus
+    - '../data/9031.go_annotations.gaf.gz'   ### Gallus gallus
+    - '../data/7955.go_annotations.gaf.gz'   ### Danio rerio
+    - '../data/7227.go_annotations.gaf.gz'   ### Drosophila melanogaster
+    - '../data/4932.go_annotations.gaf.gz'   ### Saccharomyces cerevisiae (4932-->559292 downstream when filtering for taxon ids)
+    - '../data/4896.go_annotations.gaf.gz'   ### Schizosaccharomyces pombe
+    - '../data/6239.go_annotations.gaf.gz'   ### Caenorhabditis elegans
+    - '../data/44689.go_annotations.gaf.gz'  ### Dictyostelium discoideum
+  filters:
+    - inclusion: 'include'
+      column: 'Taxon'
+      filter_code: 'in'
+      value:
+        - 'taxon:9606'
+        - 'taxon:10090'
+        - 'taxon:10116'
+        - 'taxon:9615'
+        - 'taxon:9823'
+        - 'taxon:9913'
+        - 'taxon:9031'
+        - 'taxon:7955'
+        - 'taxon:7227'
+        - 'taxon:559292'  ### Saccharomyces cerevisiae S288C Reference genome assembly strain (Majority of annotations from this taxon id > 100,000)
+        - 'taxon:4896'
+        - 'taxon:6239'
+        - 'taxon:44689'
+  # http://geneontology.org/docs/go-annotation-file-gaf-format-2.2/
+  columns:
+    - DB
+    - DB_Object_ID
+    - DB_Object_Symbol
+    - Qualifier
+    - GO_ID
+    - DB_Reference
+    - Evidence_Code
+    - With_or_From
+    - Aspect
+    - DB_Object_Name
+    - DB_Object_Synonym
+    - DB_Object_Type
+    - Taxon
+    - Date
+    - Assigned_By
+    - Annotation_Extension
+    - Gene_Product_Form_ID
+
+transform:
+  name: 'go_annotation_transform'
+  mode: 'flat'
+
+writer:
+  name: 'go_annotation_writer'
+  node_properties: []
+  edge_properties:
+    - 'id'
+    - 'category'
+    - 'subject'
+    - 'predicate'
+    - 'negated'
+    - 'has_evidence'
+    - 'object'
+    - 'species_context_qualifier'
+    - 'publications'
+    - 'aggregator_knowledge_source'
+    - 'primary_knowledge_source'
+    - 'knowledge_level'
+    - 'agent_type'
