@@ -13,19 +13,20 @@ _src_dir = Path(__file__).parent
 if str(_src_dir) not in sys.path:
     sys.path.insert(0, str(_src_dir))
 
-import uuid
-import koza
-from biolink_model.datamodel.pydanticmodel_v2 import KnowledgeLevelEnum, AgentTypeEnum
+import uuid  # noqa: E402
 
-from loguru import logger
-from annotation_utils import (
-    parse_identifiers,
-    go_aspect_to_biolink_class,
-    biolink_predicate_map,
+import koza  # noqa: E402
+from biolink_model.datamodel.pydanticmodel_v2 import AgentTypeEnum, KnowledgeLevelEnum  # noqa: E402
+from loguru import logger  # noqa: E402
+
+from annotation_utils import (  # noqa: E402
     aspect_map,
-    relevant_aspects,
+    biolink_predicate_map,
     default_no_evidence_found,
+    go_aspect_to_biolink_class,
+    parse_identifiers,
     qualifier_map,
+    relevant_aspects,
 )
 
 

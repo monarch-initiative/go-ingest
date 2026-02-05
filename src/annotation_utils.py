@@ -2,10 +2,9 @@
 Some Gene Ontology Annotation ingest utility functions.
 """
 
-from re import sub, IGNORECASE, compile, Pattern
-from typing import Optional, Tuple, List, Dict
+from re import Pattern, compile
+from typing import Dict, List, Tuple
 
-from loguru import logger
 from biolink_model.datamodel.pydanticmodel_v2 import (
     BiologicalProcess,
     CellularComponent,
@@ -14,7 +13,7 @@ from biolink_model.datamodel.pydanticmodel_v2 import (
     MacromolecularMachineToMolecularActivityAssociation,
     MolecularActivity,
 )
-
+from loguru import logger
 
 # The three values allowed in the "Aspect" column of the gaf files for this ingest
 # https://geneontology.org/docs/go-annotation-file-gaf-format-2.2/#db-column-9
@@ -47,7 +46,8 @@ _gene_identifier_map: Dict[str, Tuple[str, Pattern]] = {
 # Create biolink predicate map in three steps
 # Define predicate terms
 # Map each term to its corresponding biolink predicate (1:1 "biolink:mapping" for all except involved_in)
-# Add exceptions to the rule where the term is not a 1:1 to biolink (Currently 1 exception "involved_in"--> "actively_involved_in")
+# Add exceptions to the rule where the term is not a 1:1 to biolink
+# (Currently 1 exception "involved_in" --> "actively_involved_in")
 predicate_terms = [
     "enables",
     "involved_in",
