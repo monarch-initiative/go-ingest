@@ -26,12 +26,8 @@ def run_preprocessing(input_content: str, sql_template: str) -> list[dict]:
         input_file.write_text(input_content)
 
         # Modify SQL to use temp paths
-        sql = sql_template.replace(
-            "'data/gaf-eco-mapping.txt'",
-            f"'{input_file}'"
-        ).replace(
-            "'data/gaf-eco-map.tsv'",
-            f"'{data_dir / 'gaf-eco-map.tsv'}'"
+        sql = sql_template.replace("'data/gaf-eco-mapping.txt'", f"'{input_file}'").replace(
+            "'data/gaf-eco-map.tsv'", f"'{data_dir / 'gaf-eco-map.tsv'}'"
         )
 
         # Run the SQL

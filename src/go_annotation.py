@@ -18,13 +18,15 @@ import koza
 from biolink_model.datamodel.pydanticmodel_v2 import KnowledgeLevelEnum, AgentTypeEnum
 
 from loguru import logger
-from annotation_utils import (parse_identifiers,
-                              go_aspect_to_biolink_class,
-                              biolink_predicate_map,
-                              aspect_map,
-                              relevant_aspects,
-                              default_no_evidence_found,
-                              qualifier_map)
+from annotation_utils import (
+    parse_identifiers,
+    go_aspect_to_biolink_class,
+    biolink_predicate_map,
+    aspect_map,
+    relevant_aspects,
+    default_no_evidence_found,
+    qualifier_map,
+)
 
 
 @koza.transform_record()
@@ -36,9 +38,9 @@ def transform_record(koza_transform, row):
     #      'P' == biological_process - child of GO:0008150
     #      'C' == cellular_component - child of GO:0005575
     gene_id, ncbitaxa = parse_identifiers(row)
-    go_id = row['GO_ID']
-    go_aspect = row['Aspect'].upper()
-    evidence_code = row['Evidence_Code']
+    go_id = row["GO_ID"]
+    go_aspect = row["Aspect"].upper()
+    evidence_code = row["Evidence_Code"]
     eco_term = None
 
     # Association predicate is normally NOT negated
@@ -65,7 +67,7 @@ def transform_record(koza_transform, row):
     # The Association Predicate is otherwise inferred from the GAF 'Qualifier' used.
     # Note that this qualifier may be negated (i.e. "NOT|<qualifier>").
     key = tuple((go_id, eco_term))
-    qualifier = qualifier_map.get(key, row['Qualifier'])
+    qualifier = qualifier_map.get(key, row["Qualifier"])
 
     # If qualifier missing, assign a default predicate
     # a.k.a. predicate based on specified GO Aspect type
@@ -92,23 +94,27 @@ def transform_record(koza_transform, row):
 
     # Format our publications ("Removes issues where prefix is duplicated for all DB_Reference
     # MGI:MGI:1234 --> MGI:1234
-    publications = [":".join(p.split(":")[::-1][0:2][::-1]) for p in row['DB_Reference'].split("|")] if row['DB_Reference'] else []
+    publications = (
+        [":".join(p.split(":")[::-1][0:2][::-1]) for p in row["DB_Reference"].split("|")] if row["DB_Reference"] else []
+    )
 
     # Retrieve the GO aspect related NamedThing category-associated 'node' and Association 'edge' classes
     go_concept_node_class, gene_go_term_association_class = go_aspect_to_biolink_class[go_aspect]
 
     # Instantiate the appropriate Gene-to-GO Term instance
-    association = gene_go_term_association_class(id="uuid:" + str(uuid.uuid1()),
-                                                 subject=gene_id,
-                                                 object=go_id,
-                                                 predicate=predicate,
-                                                 negated=negated,
-                                                 has_evidence=[eco_term],
-                                                 publications=publications,
-                                                 aggregator_knowledge_source=["infores:monarchinitiative"],
-                                                 primary_knowledge_source=assigned_by,
-                                                 knowledge_level=KnowledgeLevelEnum.knowledge_assertion,
-                                                 agent_type=AgentTypeEnum.manual_agent,
-                                                 species_context_qualifier=ncbitaxa)
+    association = gene_go_term_association_class(
+        id="uuid:" + str(uuid.uuid1()),
+        subject=gene_id,
+        object=go_id,
+        predicate=predicate,
+        negated=negated,
+        has_evidence=[eco_term],
+        publications=publications,
+        aggregator_knowledge_source=["infores:monarchinitiative"],
+        primary_knowledge_source=assigned_by,
+        knowledge_level=KnowledgeLevelEnum.knowledge_assertion,
+        agent_type=AgentTypeEnum.manual_agent,
+        species_context_qualifier=ncbitaxa,
+    )
     # Return the captured Association
     return [association]
