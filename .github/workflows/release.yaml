@@ -37,15 +37,8 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@v2
 
-      - name: Download data
-        run: just download
-
-      - name: Run transforms
-        run: |
-          for transform in $TRANSFORMS; do
-            echo "Running transform: $transform"
-            uv run koza transform src/$transform.yaml
-          done
+      - name: Run ingest
+        run: just run
 
       - name: Generate release tag
         id: tag
