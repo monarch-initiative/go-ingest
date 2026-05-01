@@ -20,7 +20,14 @@ dependencies = [
   "loguru",
   "kghub-downloader>=0.4.4",
   "duckdb>=1.4.4",
+  "kozahub-metadata-schema",
+  "requests>=2.28.0",
 ]
+
+[tool.uv.sources]
+# Path-dep on the kozahub metadata schema. Assumes the schema repo is checked
+# out as a sibling directory. Switch to `git = ...` or PyPI once published.
+kozahub-metadata-schema = { path = "../kozahub-metadata-schema", editable = true }
 
 [dependency-groups]
 dev = [
