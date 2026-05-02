@@ -19,9 +19,9 @@ install:
 
 # ============== Ingest Pipeline ==============
 
-# Full pipeline: download -> preprocess -> transform
+# Full pipeline: download -> preprocess -> transform -> metadata
 [group('ingest')]
-run: download preprocess transform-all
+run: download preprocess transform-all metadata
     @echo "Done!"
 
 # Download source data using kghub-downloader
