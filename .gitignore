@@ -141,3 +141,4 @@ test-output/
 
 # Transform logs
 logs/
+golden_output/

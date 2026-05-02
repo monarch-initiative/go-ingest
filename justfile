@@ -19,9 +19,9 @@ install:
 
 # ============== Ingest Pipeline ==============
 
-# Full pipeline: download -> preprocess -> transform
+# Full pipeline: download -> preprocess -> transform -> metadata
 [group('ingest')]
-run: download preprocess transform-all
+run: download preprocess transform-all metadata
     @echo "Done!"
 
 # Download source data using kghub-downloader
@@ -46,6 +46,10 @@ transform-all: download
         fi
     done
 
+# Emit output/release-metadata.yaml describing this build's upstream sources and artifacts
+[group('ingest')]
+metadata:
+    uv run python scripts/write_metadata.py
 
 # Run specific transform
 [group('ingest')]
