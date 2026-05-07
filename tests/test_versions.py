@@ -1,7 +1,7 @@
 """Unit tests for src/versions.py — per-GAF nested SourceVersion emission.
 
 These exercise the parsing path (download.yaml → per-file infores mapping →
-GAF header date) without hitting the network or the AGR FMS API.
+GAF header date) without hitting the network.
 """
 
 from __future__ import annotations
