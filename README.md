@@ -2,7 +2,7 @@
 
 [Gene Ontology](http://geneontology.org/) provides annotations linking genes to GO terms describing molecular functions, biological processes, and cellular components.
 
-Data is downloaded from: `http://current.geneontology.org/annotations/`
+Data is downloaded from: `http://current.geneontology.org/annotations/gaf/`
 
 ### Species Included
 

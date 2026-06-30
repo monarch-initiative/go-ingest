@@ -40,20 +40,25 @@ DATA_DIR = INGEST_DIR / "data"
 
 # Map from upstream GAF basename -> (infores, human-readable name).
 # Keyed by the basename in the GO download URL (not our local taxid name).
+#
+# As of the June 2026 GO pipeline migration (geneontology/go-announcements#1153)
+# these basenames use UniProt mnemonic organism codes under /annotations/gaf/.
+# MOD-submitted species use the `-mod` (MOD ID-centric) variant; UniProt-mediated
+# species use `-uniprot`.
 GAF_INFORES = {
-    "mgi.gaf.gz": ("infores:mgi", "Mouse Genome Informatics"),
-    "rgd.gaf.gz": ("infores:rgd", "Rat Genome Database"),
-    "zfin.gaf.gz": ("infores:zfin", "ZFIN"),
-    "fb.gaf.gz": ("infores:flybase", "FlyBase"),
-    "wb.gaf.gz": ("infores:wormbase", "WormBase"),
-    "sgd.gaf.gz": ("infores:sgd", "Saccharomyces Genome Database"),
-    "pombase.gaf.gz": ("infores:pombase", "PomBase"),
-    "dictybase.gaf.gz": ("infores:dictybase", "dictyBase"),
-    "goa_human.gaf.gz": ("infores:goa-human", "GOA Human (UniProt)"),
-    "goa_dog.gaf.gz": ("infores:goa-dog", "GOA Dog (UniProt)"),
-    "goa_cow.gaf.gz": ("infores:goa-cow", "GOA Cow (UniProt)"),
-    "goa_pig.gaf.gz": ("infores:goa-pig", "GOA Pig (UniProt)"),
-    "goa_chicken.gaf.gz": ("infores:goa-chicken", "GOA Chicken (UniProt)"),
+    "MOUSE-mod.gaf.gz": ("infores:mgi", "Mouse Genome Informatics"),
+    "RAT-mod.gaf.gz": ("infores:rgd", "Rat Genome Database"),
+    "DANRE-mod.gaf.gz": ("infores:zfin", "ZFIN"),
+    "DROME-mod.gaf.gz": ("infores:flybase", "FlyBase"),
+    "CAEEL-mod.gaf.gz": ("infores:wormbase", "WormBase"),
+    "YEAST-mod.gaf.gz": ("infores:sgd", "Saccharomyces Genome Database"),
+    "SCHPO-mod.gaf.gz": ("infores:pombase", "PomBase"),
+    "DICDI-mod.gaf.gz": ("infores:dictybase", "dictyBase"),
+    "HUMAN-uniprot.gaf.gz": ("infores:goa-human", "GOA Human (UniProt)"),
+    "CANLF-uniprot.gaf.gz": ("infores:goa-dog", "GOA Dog (UniProt)"),
+    "BOVIN-uniprot.gaf.gz": ("infores:goa-cow", "GOA Cow (UniProt)"),
+    "PIG-uniprot.gaf.gz": ("infores:goa-pig", "GOA Pig (UniProt)"),
+    "CHICK-uniprot.gaf.gz": ("infores:goa-chicken", "GOA Chicken (UniProt)"),
 }
 
 
