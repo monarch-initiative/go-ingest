@@ -43,11 +43,11 @@ def fake_ingest(tmp_path, monkeypatch):
     """Build a minimal ingest tree at tmp_path with a download.yaml and one GAF."""
     (tmp_path / "data").mkdir()
     (tmp_path / "download.yaml").write_text(
-        "- url: http://current.geneontology.org/annotations/mgi.gaf.gz\n"
+        "- url: http://current.geneontology.org/annotations/gaf/MOUSE-mod.gaf.gz\n"
         "  local_name: data/10090.go_annotations.gaf.gz\n"
-        "- url: http://current.geneontology.org/annotations/zfin.gaf.gz\n"
+        "- url: http://current.geneontology.org/annotations/gaf/DANRE-mod.gaf.gz\n"
         "  local_name: data/7955.go_annotations.gaf.gz\n"
-        "- url: http://current.geneontology.org/annotations/something_unknown.gaf.gz\n"
+        "- url: http://current.geneontology.org/annotations/gaf/something_unknown.gaf.gz\n"
         "  local_name: data/unknown.go_annotations.gaf.gz\n"
     )
     _write_gaf(tmp_path / "data" / "10090.go_annotations.gaf.gz", "2025-10-11T19:57")
@@ -74,7 +74,7 @@ def test_per_gaf_sources_maps_url_basename_to_infores(fake_ingest):
     ids = {s["id"] for s in sources}
     assert ids == {"infores:mgi", "infores:zfin"}
     mgi = next(s for s in sources if s["id"] == "infores:mgi")
-    assert mgi["urls"] == ["http://current.geneontology.org/annotations/mgi.gaf.gz"]
+    assert mgi["urls"] == ["http://current.geneontology.org/annotations/gaf/MOUSE-mod.gaf.gz"]
 
 
 def test_per_gaf_sources_skips_unknown_basenames(fake_ingest):
@@ -87,7 +87,7 @@ def test_per_gaf_sources_handles_missing_local_file(tmp_path, monkeypatch):
     """If the GAF wasn't downloaded, the entry still emits with unknown version."""
     (tmp_path / "data").mkdir()
     (tmp_path / "download.yaml").write_text(
-        "- url: http://current.geneontology.org/annotations/mgi.gaf.gz\n"
+        "- url: http://current.geneontology.org/annotations/gaf/MOUSE-mod.gaf.gz\n"
         "  local_name: data/10090.go_annotations.gaf.gz\n"
     )
     monkeypatch.setattr(versions, "INGEST_DIR", tmp_path)
