@@ -25,6 +25,12 @@ reader:
     - inclusion: 'include'
       column: 'Taxon'
       filter_code: 'in'
+      # The June 2026 GO pipeline migration (geneontology/go-announcements#1153)
+      # changed the Taxon column prefix on MOD-native rows from `taxon:` to
+      # `NCBITaxon:` in the `-mod` GAF files (MGI, RGD, ZFIN, FlyBase, WormBase,
+      # SGD, PomBase, dictyBase). This `in` filter is an exact string match, so
+      # both prefixes must be enumerated or those species drop to ~0 edges.
+      # The `-uniprot` files (human, dog, cow, pig, chicken) still use `taxon:`.
       value:
         - 'taxon:9606'
         - 'taxon:10090'
@@ -39,6 +45,19 @@ reader:
         - 'taxon:4896'
         - 'taxon:6239'
         - 'taxon:44689'
+        - 'NCBITaxon:9606'
+        - 'NCBITaxon:10090'
+        - 'NCBITaxon:10116'
+        - 'NCBITaxon:9615'
+        - 'NCBITaxon:9823'
+        - 'NCBITaxon:9913'
+        - 'NCBITaxon:9031'
+        - 'NCBITaxon:7955'
+        - 'NCBITaxon:7227'
+        - 'NCBITaxon:559292'  ### Saccharomyces cerevisiae S288C Reference genome assembly strain (Majority of annotations from this taxon id > 100,000)
+        - 'NCBITaxon:4896'
+        - 'NCBITaxon:6239'
+        - 'NCBITaxon:44689'
   # http://geneontology.org/docs/go-annotation-file-gaf-format-2.2/
   columns:
     - DB

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Tuple
 
 import pytest
+import yaml
 from biolink_model.datamodel.pydanticmodel_v2 import Association
 from koza import KozaTransform
 from koza.io.writer.passthrough_writer import PassthroughWriter
@@ -19,6 +20,7 @@ from annotation_utils import parse_identifiers
 
 # Define the transform script path
 TRANSFORM_SCRIPT = Path(__file__).parent.parent / "src" / "go_annotation.py"
+TRANSFORM_CONFIG = Path(__file__).parent.parent / "src" / "go_annotation.yaml"
 
 
 def load_module_from_path(path: Path):
@@ -579,6 +581,32 @@ def test_invalid_evidence_code(mappings):
     assert len(entities) == 1
     # Invalid evidence code should fall back to ND -> ECO:0000307
     assert "ECO:0000307" in entities[0].has_evidence
+
+
+def test_taxon_filter_covers_both_prefixes():
+    """Regression test for the June 2026 GO pipeline migration.
+
+    The `-mod` GAF files now emit the Taxon column with an ``NCBITaxon:`` prefix
+    on MOD-native rows instead of the legacy lowercase ``taxon:``. The reader's
+    ``in`` filter is an exact string match, so every target taxon must be listed
+    under both prefixes or the MOD species (MGI, RGD, ZFIN, FlyBase, WormBase,
+    SGD, PomBase, dictyBase) silently drop to ~0 edges.
+    """
+    config = yaml.safe_load(TRANSFORM_CONFIG.read_text())
+    taxon_filter = next(
+        f for f in config["reader"]["filters"] if f.get("column") == "Taxon"
+    )
+    values = set(taxon_filter["value"])
+
+    lower = {v.split(":", 1)[1] for v in values if v.startswith("taxon:")}
+    ncbi = {v.split(":", 1)[1] for v in values if v.startswith("NCBITaxon:")}
+
+    assert lower, "expected legacy taxon: entries in the Taxon filter"
+    assert lower == ncbi, (
+        "Taxon filter must enumerate every taxon under both taxon: and "
+        f"NCBITaxon: prefixes; missing NCBITaxon: for {sorted(lower - ncbi)}, "
+        f"missing taxon: for {sorted(ncbi - lower)}"
+    )
 
 
 def test_empty_aspect_skipped(mappings):
