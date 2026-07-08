@@ -15,7 +15,7 @@ requires-python = ">=3.10,<4.0"
 dynamic = ["version"]
 
 dependencies = [
-  "koza>=2.0.0",
+  "koza>=2.6.1",
   "biolink-model>=4.0.0",
   "loguru",
   "kghub-downloader>=0.4.4",
