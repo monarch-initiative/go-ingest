@@ -25,20 +25,36 @@ reader:
     - inclusion: 'include'
       column: 'Taxon'
       filter_code: 'in'
+      # GAF files mix `taxon:` and `NCBITaxon:` prefixes in the Taxon column as of
+      # 2026-07; this `in` filter is an exact string match, so each taxon id is
+      # listed under both prefixes to cast a wider net for compatibility.
       value:
         - 'taxon:9606'
+        - 'NCBITaxon:9606'
         - 'taxon:10090'
+        - 'NCBITaxon:10090'
         - 'taxon:10116'
+        - 'NCBITaxon:10116'
         - 'taxon:9615'
+        - 'NCBITaxon:9615'
         - 'taxon:9823'
+        - 'NCBITaxon:9823'
         - 'taxon:9913'
+        - 'NCBITaxon:9913'
         - 'taxon:9031'
+        - 'NCBITaxon:9031'
         - 'taxon:7955'
+        - 'NCBITaxon:7955'
         - 'taxon:7227'
+        - 'NCBITaxon:7227'
         - 'taxon:559292'  ### Saccharomyces cerevisiae S288C Reference genome assembly strain (Majority of annotations from this taxon id > 100,000)
+        - 'NCBITaxon:559292'
         - 'taxon:4896'
+        - 'NCBITaxon:4896'
         - 'taxon:6239'
+        - 'NCBITaxon:6239'
         - 'taxon:44689'
+        - 'NCBITaxon:44689'
   # http://geneontology.org/docs/go-annotation-file-gaf-format-2.2/
   columns:
     - DB
@@ -65,6 +81,8 @@ transform:
     - "./gaf_eco_map.yaml"
 
 writer:
+  # ~20% below the ~3.8M edges produced as of 2026-07
+  min_edge_count: 3000000
   edge_properties:
     - 'id'
     - 'category'
