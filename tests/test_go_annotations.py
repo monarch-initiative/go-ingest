@@ -584,13 +584,9 @@ def test_invalid_evidence_code(mappings):
 
 
 def test_taxon_filter_covers_both_prefixes():
-    """Regression test for the June 2026 GO pipeline migration.
-
-    The `-mod` GAF files now emit the Taxon column with an ``NCBITaxon:`` prefix
-    on MOD-native rows instead of the legacy lowercase ``taxon:``. The reader's
-    ``in`` filter is an exact string match, so every target taxon must be listed
-    under both prefixes or the MOD species (MGI, RGD, ZFIN, FlyBase, WormBase,
-    SGD, PomBase, dictyBase) silently drop to ~0 edges.
+    """GAF files mix ``taxon:`` and ``NCBITaxon:`` prefixes in the Taxon column,
+    and the reader's ``in`` filter is an exact string match, so every taxon id
+    must be listed under both prefixes.
     """
     config = yaml.safe_load(TRANSFORM_CONFIG.read_text())
     taxon_filter = next(
