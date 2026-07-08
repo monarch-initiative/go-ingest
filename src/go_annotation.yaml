@@ -84,6 +84,13 @@ transform:
     - "./gaf_eco_map.yaml"
 
 writer:
+  # Fail the build if the edge count collapses. Healthy full-species builds emit
+  # ~3.8M edges; the June 2026 GO format change silently dropped that to ~2.0M
+  # before anyone noticed (see the Taxon-prefix note above). This is a coarse
+  # whole-graph floor set well above the failure and ~20% below the healthy low,
+  # so a catastrophic drop fails loudly without tripping on normal fluctuation.
+  # Requires koza with writer count-bound enforcement (monarch-initiative/koza#238).
+  min_edge_count: 3000000
   edge_properties:
     - 'id'
     - 'category'
