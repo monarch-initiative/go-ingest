@@ -44,10 +44,11 @@ _gene_identifier_map: Dict[str, Tuple[str, Pattern]] = {
 
 
 # Create biolink predicate map in three steps
-# Define predicate terms
-# Map each term to its corresponding biolink predicate (1:1 "biolink:mapping" for all except involved_in)
-# Add exceptions to the rule where the term is not a 1:1 to biolink
-# (Currently 1 exception "involved_in" --> "actively_involved_in")
+# Define predicate terms (the values GO uses in the GAF "Qualifier" column)
+# Map each term to its corresponding biolink predicate (1:1 "biolink:mapping" for most)
+# Add exceptions to the rule where the GAF term is not a 1:1 to a biolink predicate slot:
+#   "involved_in"  --> "biolink:actively_involved_in" (RO:0002331)
+#   "is_active_in" --> "biolink:active_in"             (RO:0002432; biolink's slot is "active_in", not "is_active_in")
 predicate_terms = [
     "enables",
     "involved_in",
@@ -64,9 +65,9 @@ predicate_terms = [
     "acts_upstream_of_or_within_negative_effect",
 ]
 biolink_predicate_map = {pterm: "biolink:{}".format(pterm) for pterm in predicate_terms}
-biolink_predicate_map["involved_in"] = (
-    "biolink:actively_involved_in"  # Our one exception to the rule where the term is not a 1:1 to biolink
-)
+# Exceptions where the GAF qualifier term does not match the biolink predicate slot name 1:1
+biolink_predicate_map["involved_in"] = "biolink:actively_involved_in"
+biolink_predicate_map["is_active_in"] = "biolink:active_in"
 
 
 ### https://geneontology.org/docs/go-annotation-file-gaf-format-2.2/#aspect-column-9
