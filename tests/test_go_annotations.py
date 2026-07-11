@@ -504,18 +504,27 @@ def test_association(test_rows, mappings):
     # We expect 10 associations (11 rows - 1 skipped due to empty Aspect)
     assert len(entities) == 10
 
-    # Test first association (regular MolecularActivity)
-    association = entities[0]
-    assert association
-    assert association.subject in result_expected.keys()
+    # Every produced subject should be represented exactly once in result_expected
+    produced_subjects = [association.subject for association in entities]
+    assert len(produced_subjects) == len(set(produced_subjects)), "unexpected duplicate subjects"
 
-    assert association.object == result_expected[association.subject][2]
-    assert association.predicate == result_expected[association.subject][5]
-    assert association.negated == result_expected[association.subject][7]
-    assert result_expected[association.subject][8] in association.has_evidence
+    # Validate EVERY produced association, not just the first one. This guards
+    # against predicate regressions (e.g. is_active_in vs. active_in) that would
+    # otherwise slip through if only entities[0] were checked.
+    for association in entities:
+        assert association
+        assert association.subject in result_expected, f"unexpected subject {association.subject}"
+        expected = result_expected[association.subject]
 
-    assert association.primary_knowledge_source == "infores:uniprot"
-    assert "infores:monarchinitiative" in association.aggregator_knowledge_source
+        assert association.object == expected[2]
+        assert association.predicate == expected[5]
+        assert association.negated == expected[7]
+        assert expected[8] in association.has_evidence
+        assert "infores:monarchinitiative" in association.aggregator_knowledge_source
+
+    # Primary knowledge source is derived from the row's Assigned_By column;
+    # the first fixture row is assigned by UniProt.
+    assert entities[0].primary_knowledge_source == "infores:uniprot"
 
     # Taxon testing (multiple and single taxon values)
     single_taxa_association = entities[0]
@@ -603,6 +612,56 @@ def test_taxon_filter_covers_both_prefixes():
         f"NCBITaxon: prefixes; missing NCBITaxon: for {sorted(lower - ncbi)}, "
         f"missing taxon: for {sorted(ncbi - lower)}"
     )
+
+
+def _biolink_predicate_curies() -> set[str]:
+    """Return the set of valid biolink predicate CURIEs from the installed biolink model.
+
+    A predicate is any slot that is (transitively) ``is_a: related to``. We read
+    the schema YAML bundled with the ``biolink_model`` package so the check tracks
+    whatever biolink-model version this ingest depends on.
+    """
+    import importlib.util
+
+    spec = importlib.util.find_spec("biolink_model")
+    pkg_dir = Path(spec.submodule_search_locations[0])
+    schema_path = pkg_dir / "schema" / "biolink_model.yaml"
+    slots = yaml.safe_load(schema_path.read_text())["slots"]
+
+    def is_predicate(name: str) -> bool:
+        cur = name
+        while cur:
+            if cur == "related to":
+                return True
+            slot = slots.get(cur)
+            cur = slot.get("is_a") if slot else None
+        return False
+
+    return {"biolink:" + name.replace(" ", "_") for name in slots if is_predicate(name)}
+
+
+def test_only_real_biolink_predicates():
+    """Every predicate the transform can emit must be a real biolink predicate.
+
+    Guards monarch-app#1360: ``biolink:is_active_in`` is not a canonical biolink
+    predicate (the slot is ``active_in`` / RO:0002432).
+    """
+    from annotation_utils import aspect_map, biolink_predicate_map, qualifier_map
+
+    valid = _biolink_predicate_curies()
+    # sanity: the canonical slot exists and the non-canonical one does not
+    assert "biolink:active_in" in valid
+    assert "biolink:is_active_in" not in valid
+
+    # Collect every biolink predicate CURIE the transform can produce:
+    emitted = set(biolink_predicate_map.values())
+    # aspect_map defaults are routed through biolink_predicate_map at the use site
+    emitted |= {biolink_predicate_map[term] for term in aspect_map.values()}
+    # qualifier_map (ND root-node) defaults are likewise routed through biolink_predicate_map
+    emitted |= {biolink_predicate_map[q] for q in qualifier_map.values()}
+
+    invalid = sorted(p for p in emitted if p not in valid)
+    assert not invalid, f"transform emits non-biolink predicate(s): {invalid}"
 
 
 def test_empty_aspect_skipped(mappings):

@@ -74,7 +74,9 @@ def transform_record(koza_transform, row):
     # a.k.a. predicate based on specified GO Aspect type
     if not qualifier:
         logger.error("GAF record is missing its qualifier...assigning default qualifier as per GO term Aspect")
-        predicate = aspect_map[go_aspect]
+        # Route the GAF aspect default through biolink_predicate_map so we always
+        # emit a real biolink predicate CURIE (never a bare term).
+        predicate = biolink_predicate_map[aspect_map[go_aspect]]
 
     else:
         # check for piped negation prefix (hopefully, well behaved!)
